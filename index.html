@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<title>双色球助手</title>
+<style>
+  :root{
+    --red:#e53935; --blue:#1e88e5; --bg:#f2f3f7; --card:#fff;
+    --txt:#22283a; --sub:#8a90a3; --line:#eceef3; --gold:#f9a825;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  body{background:var(--bg); color:var(--txt);
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    padding-bottom:calc(64px + env(safe-area-inset-bottom));}
+  header{background:linear-gradient(135deg,#c62828,#e53935 55%,#ef6c6c); color:#fff;
+    padding:14px 16px calc(14px + env(safe-area-inset-top));}
+  .hd-row{display:flex; align-items:center; justify-content:space-between;}
+  .hd-title{font-size:18px; font-weight:700; letter-spacing:1px;}
+  .hd-refresh{background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.45);
+    color:#fff; font-size:13px; padding:6px 14px; border-radius:16px;}
+  .hd-refresh:active{opacity:.7;}
+  .latest-card{margin-top:12px; background:rgba(255,255,255,.13); border-radius:14px; padding:10px 12px;}
+  .latest-meta{font-size:12px; opacity:.92; margin-bottom:8px; display:flex; justify-content:space-between;}
+  .balls{display:flex; gap:7px; flex-wrap:wrap;}
+  .ball{width:32px; height:32px; border-radius:50%; color:#fff; font-weight:700; font-size:13px;
+    display:flex; align-items:center; justify-content:center; flex:none;}
+  .ball.red{background:var(--red); box-shadow:0 2px 6px rgba(0,0,0,.18);}
+  .ball.blue{background:var(--blue); box-shadow:0 2px 6px rgba(0,0,0,.18);}
+  .ball.sm{width:24px; height:24px; font-size:11px;}
+  .countdown{margin-top:9px; font-size:12px; opacity:.95;}
+  main{padding:12px 12px 8px; max-width:560px; margin:0 auto;}
+  .view.hidden{display:none;}
+  .card{background:var(--card); border-radius:14px; padding:14px; margin-bottom:12px; box-shadow:0 1px 4px rgba(30,40,70,.05);}
+  .card h3{font-size:14px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;}
+  .card h3 .tag{font-size:11px; color:var(--sub); font-weight:400;}
+  .chips{display:flex; gap:8px; flex-wrap:wrap;}
+  .chip{padding:7px 14px; border-radius:18px; background:#f0f2f7; color:#565d73; font-size:13px; border:1.5px solid transparent;}
+  .chip.on{background:#fdecec; color:var(--red); border-color:var(--red); font-weight:600;}
+  .stepper{display:flex; align-items:center; gap:14px;}
+  .stepper button{width:34px; height:34px; border-radius:50%; border:1px solid #d8dbe4; background:#fff; font-size:19px; color:#565d73;}
+  .stepper span{min-width:26px; text-align:center; font-size:17px; font-weight:700;}
+  .btn-main{width:100%; margin-top:12px; background:linear-gradient(135deg,#e53935,#ef5350); color:#fff;
+    border:none; border-radius:12px; padding:13px; font-size:16px; font-weight:700; letter-spacing:2px;}
+  .btn-main:disabled{opacity:.55;}
+  .pred-row{display:flex; align-items:center; gap:6px; padding:9px 0; border-bottom:1px solid var(--line);}
+  .pred-row:last-child{border-bottom:none;}
+  .pred-idx{font-size:11px; color:var(--sub); width:14px; flex:none;}
+  .pred-struct{font-size:10px; color:var(--sub); margin-top:4px;}
+  .disclaim{font-size:11px; color:#b71c1c; background:#fdeeee; border-radius:10px; padding:9px 11px; line-height:1.6;}
+  .hist-row{display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line);}
+  .hist-row:last-child{border-bottom:none;}
+  .hist-info{font-size:13px; font-weight:600;}
+  .hist-date{font-size:11px; color:var(--sub); margin-top:2px;}
+  .chart{display:flex; align-items:flex-end; gap:2px; height:110px; padding-top:6px;}
+  .col{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;}
+  .col .bar{width:70%; background:var(--red); border-radius:2px 2px 0 0; min-height:2px;}
+  .col.b .bar{background:var(--blue);}
+  .col .num{font-size:8px; color:var(--sub); margin-top:3px; transform:scale(.9);}
+  .stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:9px;}
+  .stat-item{background:#f7f8fb; border-radius:10px; padding:9px 10px; font-size:11px; color:var(--sub); line-height:1.7;}
+  .stat-item b{display:block; font-size:12px; color:var(--txt); font-weight:600;}
+  .rec-row{padding:9px 0; border-bottom:1px solid var(--line);}
+  .rec-row:last-child{border-bottom:none;}
+  .rec-top{display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--sub); margin-bottom:5px;}
+  .badge{font-size:10px; padding:2px 8px; border-radius:9px; background:#f0f2f7; color:#565d73; flex:none;}
+  .badge.win{background:#fff6df; color:#a67c00; font-weight:700;}
+  .rec-vs{display:flex; align-items:center; gap:5px; flex-wrap:wrap; font-size:12px;}
+  .rec-vs .arr{color:#c3c7d4;}
+  nav{position:fixed; left:0; right:0; bottom:0; background:#fff; display:flex;
+    border-top:1px solid var(--line); padding-bottom:env(safe-area-inset-bottom); z-index:9;}
+  nav button{flex:1; padding:9px 0 7px; background:none; border:none; font-size:11px; color:var(--sub);}
+  nav button .ic{display:block; font-size:18px; margin-bottom:1px; font-style:normal;}
+  nav button.on{color:var(--red); font-weight:700;}
+  .center-tip{text-align:center; color:var(--sub); font-size:13px; padding:40px 0;}
+  .loading{width:22px; height:22px; border:3px solid #eee; border-top-color:var(--red); border-radius:50%;
+    margin:30px auto 8px; animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .rec-sum{font-size:12px; color:var(--sub); line-height:1.7;}
+  .rec-sum b{color:var(--txt);}
+</style>
+</head>
+<body>
+<header>
+  <div class="hd-row">
+    <div class="hd-title">双色球助手</div>
+    <button class="hd-refresh" id="refreshBtn">刷新数据</button>
+  </div>
+  <div class="latest-card" id="latestCard">
+    <div class="latest-meta"><span id="latestIssue">正在加载数据…</span><span id="dataSource"></span></div>
+    <div class="balls" id="latestBalls"></div>
+    <div class="countdown" id="countdown"></div>
+  </div>
+</header>
+
+<main>
+  <!-- 预测 -->
+  <section class="view" id="view-predict">
+    <div class="card">
+      <h3>预测策略</h3>
+      <div class="chips" id="strategyChips"></div>
+      <h3 style="margin-top:14px">注数</h3>
+      <div class="stepper">
+        <button id="nMinus">−</button><span id="nSets">5</span><button id="nPlus">＋</button>
+        <span style="font-size:11px;color:var(--sub)">1 ~ 10 注</span>
+      </div>
+      <button class="btn-main" id="genBtn">生成预测号码</button>
+    </div>
+    <div class="card" id="predResultCard" style="display:none">
+      <h3>预测结果 <span class="tag" id="predMeta"></span></h3>
+      <div id="predList"></div>
+    </div>
+    <div class="card" id="lastPredCard" style="display:none">
+      <h3>最近一期预测 <span class="tag">待下期开奖后自动回测</span></h3>
+      <div id="lastPredList"></div>
+    </div>
+    <div class="disclaim">郑重提醒：双色球每期开奖均为独立随机事件，历史统计无法真正提高中奖概率。本工具输出为结构化随机选号（和值/奇偶/区间/连号约束 + 频率权重），仅供娱乐参考，请理性购彩。</div>
+  </section>
+
+  <!-- 历史 -->
+  <section class="view hidden" id="view-history">
+    <div class="card">
+      <h3>历史开奖 <span class="tag" id="histCount"></span></h3>
+      <div id="histList"></div>
+    </div>
+  </section>
+
+  <!-- 走势 -->
+  <section class="view hidden" id="view-trend">
+    <div class="card">
+      <h3>红球出号频次 <span class="tag">近100期</span></h3>
+      <div class="chart" id="redChart"></div>
+    </div>
+    <div class="card">
+      <h3>蓝球出号频次 <span class="tag">近100期</span></h3>
+      <div class="chart" id="blueChart"></div>
+    </div>
+    <div class="card">
+      <h3>统计摘要</h3>
+      <div class="stat-grid" id="statGrid"></div>
+    </div>
+  </section>
+
+  <!-- 记录 -->
+  <section class="view hidden" id="view-records">
+    <div class="card">
+      <h3>命中记录 <span class="tag">保存在本机</span></h3>
+      <div class="rec-sum" id="recSummary">暂无记录</div>
+    </div>
+    <div class="card">
+      <div id="recList"><div class="center-tip">在“预测”页生成号码后，开奖结果会自动回测到此处</div></div>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button class="on" data-view="view-predict"><i class="ic">◆</i>预测</button>
+  <button data-view="view-history"><i class="ic">≡</i>历史</button>
+  <button data-view="view-trend"><i class="ic">▤</i>走势</button>
+  <button data-view="view-records"><i class="ic">◎</i>记录</button>
+</nav>
+
+<script>
+"use strict";
+var RED_N = 33, BLUE_N = 16;
+var STRATEGIES = {balanced:"均衡加权", hot:"热号追踪", cold:"冷号回补", random:"纯随机"};
+var DRAWS = [], META = {};
+var PREDS = [];
+try { PREDS = JSON.parse(localStorage.getItem("ssq_preds") || "[]"); } catch(e) { PREDS = []; }
+var curStrategy = localStorage.getItem("ssq_strategy") || "balanced";
+var nSets = parseInt(localStorage.getItem("ssq_nsets") || "5", 10) || 5;
+
+/* ---------------- 工具 ---------------- */
+function pad(n){ return (n < 10 ? "0" : "") + n; }
+function ballHTML(n, blue, sm){ return '<span class="ball ' + (blue ? "blue" : "red") + (sm ? " sm" : "") + '">' + pad(n) + '</span>'; }
+function setBalls(el, draw){
+  var h = draw.red.map(function(x){ return ballHTML(x); }).join("");
+  h += ballHTML(draw.blue, true);
+  el.innerHTML = h;
+}
+function savePreds(){ localStorage.setItem("ssq_preds", JSON.stringify(PREDS.slice(-500))); }
+
+/* ---------------- 统计与预测（与电脑版同算法） ---------------- */
+function freqMap(draws, lastN, blueOnly){
+  var pool = lastN ? draws.slice(-lastN) : draws;
+  var m = {};
+  for (var i = 0; i < pool.length; i++){
+    if (blueOnly){ m[pool[i].blue] = (m[pool[i].blue] || 0) + 1; }
+    else { var rs = pool[i].red; for (var j = 0; j < rs.length; j++) m[rs[j]] = (m[rs[j]] || 0) + 1; }
+  }
+  return m;
+}
+function omissions(draws){
+  var ro = {}, bo = {}, i, b, d;
+  for (i = 1; i <= RED_N; i++){
+    ro[i] = draws.length;
+    for (b = 0; b < draws.length; b++){
+      d = draws[draws.length - 1 - b];
+      if (d.red.indexOf(i) >= 0){ ro[i] = b; break; }
+    }
+  }
+  for (i = 1; i <= BLUE_N; i++){
+    bo[i] = draws.length;
+    for (b = 0; b < draws.length; b++){
+      d = draws[draws.length - 1 - b];
+      if (d.blue === i){ bo[i] = b; break; }
+    }
+  }
+  return [ro, bo];
+}
+function norm(m, maxN){
+  var o = {}, peak = 0, i;
+  for (i = 1; i <= maxN; i++) if ((m[i] || 0) > peak) peak = m[i];
+  if (!peak) peak = 1;
+  for (i = 1; i <= maxN; i++) o[i] = (m[i] || 0) / peak;
+  return o;
+}
+function redWeights(draws, strategy){
+  var w = {}, i;
+  if (strategy === "random"){ for (i = 1; i <= RED_N; i++) w[i] = 1; return w; }
+  var fAll = norm(freqMap(draws, 100), RED_N);
+  var f30 = norm(freqMap(draws, 30), RED_N);
+  var ro = omissions(draws)[0];
+  var gap = Math.max(1, Math.min(draws.length, 50) * 6 / RED_N);
+  for (i = 1; i <= RED_N; i++){
+    var oratio = Math.min(ro[i] / gap, 2.5);
+    if (strategy === "hot") w[i] = 0.15 + 0.65 * f30[i] + 0.30 * fAll[i];
+    else if (strategy === "cold") w[i] = 0.15 + 0.55 * oratio + 0.25 * (1 - f30[i]);
+    else w[i] = 0.20 + 0.40 * fAll[i] + 0.20 * f30[i] + 0.15 * oratio;
+  }
+  return w;
+}
+function blueWeights(draws, strategy){
+  var w = {}, i;
+  if (strategy === "random"){ for (i = 1; i <= BLUE_N; i++) w[i] = 1; return w; }
+  var f50 = norm(freqMap(draws, 50, true), BLUE_N);
+  var bo = omissions(draws)[1];
+  var gap = Math.max(1, Math.min(draws.length, 50) / BLUE_N);
+  for (i = 1; i <= BLUE_N; i++){
+    var oratio = Math.min(bo[i] / gap, 2.5);
+    if (strategy === "hot") w[i] = 0.15 + 0.85 * f50[i];
+    else if (strategy === "cold") w[i] = 0.15 + 0.85 * oratio;
+    else w[i] = 0.20 + 0.45 * f50[i] + 0.35 * oratio;
+  }
+  return w;
+}
+function weightedSample(weights, k){
+  var pool = {}, p;
+  for (p in weights) pool[p] = weights[p];
+  var picks = [];
+  while (picks.length < k){
+    var nums = Object.keys(pool), total = 0, i;
+    for (i = 0; i < nums.length; i++) total += pool[nums[i]];
+    var x = Math.random() * total, pick = nums[nums.length - 1];
+    for (i = 0; i < nums.length; i++){ x -= pool[nums[i]]; if (x <= 0){ pick = nums[i]; break; } }
+    picks.push(+pick); delete pool[pick];
+  }
+  return picks.sort(function(a, b){ return a - b; });
+}
+function structureStats(draws){
+  var sums = draws.slice(-100).map(function(d){
+    return d.red.reduce(function(a, b){ return a + b; }, 0);
+  }).sort(function(a, b){ return a - b; });
+  if (!sums.length) return [60, 165];
+  function q(p){ return sums[Math.min(Math.floor(sums.length * p), sums.length - 1)]; }
+  return [q(0.08), q(0.92)];
+}
+function structOK(red, smin, smax){
+  var s = red.reduce(function(a, b){ return a + b; }, 0);
+  if (s < smin || s > smax) return false;
+  var odd = red.filter(function(x){ return x % 2; }).length;
+  if (odd < 2 || odd > 4) return false;
+  var z = [0, 0, 0];
+  for (var i = 0; i < red.length; i++){
+    if (red[i] <= 11) z[0]++; else if (red[i] <= 22) z[1]++; else z[2]++;
+  }
+  if (Math.max(z[0], z[1], z[2]) > 4) return false;
+  var pairs = 0, j;
+  for (j = 0; j < red.length - 1; j++) if (red[j + 1] - red[j] === 1) pairs++;
+  if (pairs > 3) return false;
+  for (j = 0; j < red.length - 3; j++) if (red[j + 3] - red[j] === 3) return false;
+  return true;
+}
+function predict(draws, strategy, nSets){
+  if (draws.length < 30) throw new Error("历史数据不足30期，请先刷新数据");
+  var ss = structureStats(draws), smin = ss[0], smax = ss[1];
+  var rw = redWeights(draws, strategy), bw = blueWeights(draws, strategy);
+  var sets = [], seen = {}, attempts = 0, key;
+  while (sets.length < nSets && attempts < nSets * 500){
+    attempts++;
+    var red = weightedSample(rw, 6);
+    key = red.join(",");
+    if (seen[key] || !structOK(red, smin, smax)) continue;
+    seen[key] = 1;
+    sets.push({red: red, blue: weightedSample(bw, 1)[0]});
+  }
+  while (sets.length < nSets && attempts < nSets * 1500){
+    attempts++;
+    var red2 = weightedSample(rw, 6);
+    key = red2.join(",");
+    var s = red2.reduce(function(a, b){ return a + b; }, 0);
+    var odd = red2.filter(function(x){ return x % 2; }).length;
+    if (s >= smin && s <= smax && odd >= 2 && odd <= 4 && !seen[key]){
+      seen[key] = 1;
+      sets.push({red: red2, blue: weightedSample(bw, 1)[0]});
+    }
+  }
+  if (sets.length < nSets) throw new Error("生成失败，请重试");
+  return sets;
+}
+function describeSet(red){
+  var odd = red.filter(function(x){ return x % 2; }).length;
+  var z = [0, 0, 0];
+  for (var i = 0; i < red.length; i++){ if (red[i] <= 11) z[0]++; else if (red[i] <= 22) z[1]++; else z[2]++; }
+  return "和值" + red.reduce(function(a, b){ return a + b; }, 0) +
+    " · 奇偶" + odd + ":" + (6 - odd) + " · 区间" + z.join(":");
+}
+function nextIssue(issue){
+  var year = parseInt(issue.slice(0, 4), 10), seq = parseInt(issue.slice(4), 10) + 1;
+  if (seq > 160){ year++; seq = 1; }
+  return year + (seq < 10 ? "00" : seq < 100 ? "0" : "") + seq;
+}
+function prizeName(rh, bh){
+  if (rh === 6 && bh) return "一等奖";
+  if (rh === 6) return "二等奖";
+  if (rh === 5 && bh) return "三等奖";
+  if (rh === 5 || (rh === 4 && bh)) return "四等奖";
+  if (rh === 4 || (rh === 3 && bh)) return "五等奖";
+  if (bh) return "六等奖";
+  return "未中奖";
+}
+
+/* ---------------- 数据加载 ---------------- */
+function renderAll(){
+  if (!DRAWS.length) return;
+  renderLatest();
+  renderHistory();
+  renderTrend();
+  scoreAll();
+  renderRecords();
+}
+function renderLatest(){
+  var d = DRAWS[DRAWS.length - 1];
+  document.getElementById("latestIssue").textContent = "第" + d.issue + "期 · " + (d.date || "日期未知");
+  document.getElementById("dataSource").textContent = META.source ? ("数据：" + META.source + " " + (META.fetched_at || "")) : "";
+  setBalls(document.getElementById("latestBalls"), d);
+}
+function renderHistory(){
+  var el = document.getElementById("histList");
+  var rows = [];
+  var pool = DRAWS.slice(-200).reverse();
+  for (var i = 0; i < pool.length; i++){
+    var d = pool[i];
+    rows.push('<div class="hist-row"><div><div class="hist-info">第' + d.issue + '期</div>' +
+      '<div class="hist-date">' + (d.date || "—") + '</div></div>' +
+      '<div class="balls">' + d.red.map(function(x){ return ballHTML(x, false, true); }).join("") +
+      ballHTML(d.blue, true, true) + '</div></div>');
+  }
+  el.innerHTML = rows.join("");
+  document.getElementById("histCount").textContent = "最近 " + pool.length + " 期";
+}
+function barChart(el, freqs, maxN, blue){
+  var peak = 0, i;
+  for (i = 1; i <= maxN; i++) if ((freqs[i] || 0) > peak) peak = freqs[i];
+  if (!peak) peak = 1;
+  var html = "";
+  for (i = 1; i <= maxN; i++){
+    var pct = Math.max(4, Math.round((freqs[i] || 0) / peak * 100));
+    html += '<div class="col' + (blue ? " b" : "") + '"><div class="bar" style="height:' + pct + '%"></div>' +
+      '<div class="num">' + i + '</div></div>';
+  }
+  el.innerHTML = html;
+}
+function renderTrend(){
+  barChart(document.getElementById("redChart"), freqMap(DRAWS, 100), RED_N, false);
+  barChart(document.getElementById("blueChart"), freqMap(DRAWS, 100, true), BLUE_N, true);
+  var ro = omissions(DRAWS)[0], bo = omissions(DRAWS)[1];
+  function topKV(obj, n){
+    return Object.keys(obj).map(function(k){ return [+k, obj[k]]; })
+      .sort(function(a, b){ return b[1] - a[1]; }).slice(0, n)
+      .map(function(kv){ return pad(kv[0]) + "（" + kv[1] + "）"; }).join(" ");
+  }
+  var f30 = freqMap(DRAWS, 30);
+  var hotArr = Object.keys(f30).map(function(k){ return [+k, f30[k]]; })
+    .sort(function(a, b){ return b[1] - a[1]; }).slice(0, 6)
+    .map(function(kv){ return pad(kv[0]) + "（" + kv[1] + "次）"; }).join(" ");
+  var recent = DRAWS.slice(-30);
+  var avgSum = recent.reduce(function(a, d){ return a + d.red.reduce(function(x, y){ return x + y; }, 0); }, 0) / recent.length;
+  var ss = structureStats(DRAWS);
+  document.getElementById("statGrid").innerHTML =
+    '<div class="stat-item">红球热号（近30期）<b>' + hotArr + '</b></div>' +
+    '<div class="stat-item">红球遗漏最长<b>' + topKV(ro, 6) + '</b></div>' +
+    '<div class="stat-item">蓝球遗漏最长<b>' + topKV(bo, 5) + '</b></div>' +
+    '<div class="stat-item">近30期和值均值 <b>' + avgSum.toFixed(1) + '</b>典型区间 ' + ss[0] + " ~ " + ss[1] + '</div>';
+}
+
+/* ---------------- 预测与回测 ---------------- */
+function scoreAll(){
+  var byIssue = {}, issues = [], i;
+  for (i = 0; i < DRAWS.length; i++){ byIssue[DRAWS[i].issue] = DRAWS[i]; issues.push(DRAWS[i].issue); }
+  var nextOf = {};
+  for (i = 0; i < issues.length - 1; i++) nextOf[issues[i]] = issues[i + 1];
+  var changed = false;
+  for (i = 0; i < PREDS.length; i++){
+    var p = PREDS[i];
+    if (p.scored) continue;
+    var draw = byIssue[p.target_issue];
+    if (!draw){
+      var nx = nextOf[p.base_issue];
+      if (!nx) continue;
+      draw = byIssue[nx];
+      p.expired = true;
+    }
+    var rh = 0;
+    for (var j = 0; j < p.red.length; j++) if (draw.red.indexOf(p.red[j]) >= 0) rh++;
+    var bh = p.blue === draw.blue;
+    p.scored = true;
+    p.result = {issue: draw.issue, red_hits: rh, blue_hit: bh, prize: prizeName(rh, bh)};
+    changed = true;
+  }
+  if (changed) savePreds();
+}
+function renderRecords(){
+  var el = document.getElementById("recList"), rows = [];
+  var pool = PREDS.slice().reverse();
+  var scored = PREDS.filter(function(p){ return p.scored; });
+  var sum = document.getElementById("recSummary");
+  if (scored.length){
+    var prizes = {}, blueHits = 0;
+    scored.forEach(function(p){
+      prizes[p.result.prize] = (prizes[p.result.prize] || 0) + 1;
+      if (p.result.blue_hit) blueHits++;
+    });
+    var desc = Object.keys(prizes).sort(function(a, b){ return prizes[b] - prizes[a]; })
+      .map(function(k){ return k + "×" + prizes[k]; }).join("、");
+    sum.innerHTML = "累计回测 <b>" + scored.length + "</b> 注：" + desc +
+      " ｜ 蓝球命中 <b>" + blueHits + "</b> 次（" + Math.round(blueHits * 100 / scored.length) + "%）";
+  } else {
+    sum.textContent = "暂无已回测的预测，生成预测并等待开奖后自动回测";
+  }
+  for (var i = 0; i < pool.length; i++){
+    var p = pool[i];
+    var predHTML = p.red.map(function(x){ return ballHTML(x, false, true); }).join("") + ballHTML(p.blue, true, true);
+    var right;
+    if (p.scored){
+      var d = DRAWS.filter(function(x){ return x.issue === p.result.issue; })[0];
+      var actual = d ? (d.red.map(function(x){ return ballHTML(x, false, true); }).join("") + ballHTML(d.blue, true, true)) : "";
+      right = '<div class="rec-vs">' + predHTML + '<span class="arr">→</span>' + actual +
+        '<span class="badge' + (p.result.prize === "未中奖" ? "" : " win") + '">' + p.result.prize +
+        "（红" + p.result.red_hits + (p.result.blue_hit ? "+蓝" : "") + "）</span></div>";
+    } else {
+      right = '<div class="rec-vs">' + predHTML + '<span class="badge">待开奖</span></div>';
+    }
+    rows.push('<div class="rec-row"><div class="rec-top"><span>目标第' + p.target_issue + '期 · ' +
+      STRATEGIES[p.strategy] + " · " + p.time + '</span></div>' + right + '</div>');
+  }
+  el.innerHTML = rows.length ? rows.join("") :
+    '<div class="center-tip">在“预测”页生成号码后，开奖结果会自动回测到此处</div>';
+}
+function renderLastPred(){
+  var card = document.getElementById("lastPredCard");
+  var pending = PREDS.filter(function(p){ return !p.scored; });
+  if (!pending.length){ card.style.display = "none"; return; }
+  card.style.display = "";
+  var el = document.getElementById("lastPredList");
+  el.innerHTML = pending.slice(-5).map(function(p){
+    return '<div class="pred-row"><span class="pred-idx">' + STRATEGIES[p.strategy].slice(0, 2) +
+      '</span><div><div class="balls">' + p.red.map(function(x){ return ballHTML(x, false, true); }).join("") +
+      ballHTML(p.blue, true, true) + '</div></div></div>';
+  }).join("");
+}
+
+/* ---------------- 事件与初始化 ---------------- */
+function toast(msg){
+  var t = document.createElement("div");
+  t.textContent = msg;
+  t.style.cssText = "position:fixed;left:50%;bottom:90px;transform:translateX(-50%);" +
+    "background:rgba(30,34,50,.92);color:#fff;font-size:13px;padding:9px 16px;border-radius:18px;z-index:99;";
+  document.body.appendChild(t);
+  setTimeout(function(){ t.remove(); }, 2200);
+}
+function initChips(){
+  var el = document.getElementById("strategyChips");
+  el.innerHTML = Object.keys(STRATEGIES).map(function(k){
+    return '<button class="chip' + (k === curStrategy ? " on" : "") + '" data-k="' + k + '">' + STRATEGIES[k] + "</button>";
+  }).join("");
+  el.querySelectorAll(".chip").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      curStrategy = btn.dataset.k;
+      localStorage.setItem("ssq_strategy", curStrategy);
+      initChips();
+    });
+  });
+  document.getElementById("nSets").textContent = nSets;
+}
+function genPredict(){
+  if (!DRAWS.length){ toast("数据尚未加载，请稍候再试"); return; }
+  var btn = document.getElementById("genBtn");
+  btn.disabled = true; btn.textContent = "生成中…";
+  setTimeout(function(){
+    try {
+      var sets = predict(DRAWS, curStrategy, nSets);
+      var base = DRAWS[DRAWS.length - 1];
+      var stamp = new Date().toLocaleString("zh-CN", {hour12: false});
+      var records = sets.map(function(s){
+        return {base_issue: base.issue, target_issue: nextIssue(base.issue),
+          strategy: curStrategy, time: stamp, red: s.red, blue: s.blue,
+          scored: false, result: null};
+      });
+      PREDS = PREDS.concat(records);
+      savePreds();
+      var el = document.getElementById("predList");
+      el.innerHTML = sets.map(function(s, i){
+        return '<div class="pred-row"><span class="pred-idx">' + (i + 1) + '</span><div><div class="balls">' +
+          s.red.map(function(x){ return ballHTML(x); }).join("") + ballHTML(s.blue, true) +
+          '</div><div class="pred-struct">' + describeSet(s.red) + "</div></div></div>";
+      }).join("");
+      document.getElementById("predResultCard").style.display = "";
+      document.getElementById("predMeta").textContent =
+        "基于第" + base.issue + "期 · " + STRATEGIES[curStrategy] + " · 目标第" + records[0].target_issue + "期";
+      renderRecords(); renderLastPred();
+      toast("已生成 " + sets.length + " 注并登记回测");
+    } catch (e){ toast(e.message || "生成失败"); }
+    btn.disabled = false; btn.textContent = "生成预测号码";
+  }, 30);
+}
+function loadHistory(manual){
+  var btn = document.getElementById("refreshBtn");
+  if (manual){ btn.textContent = "刷新中…"; btn.disabled = true; }
+  var tryFetch = function(remaining){
+    fetch("/api/history").then(function(r){ return r.json(); }).then(function(d){
+      if (!d.ok) throw new Error(d.error || "数据未就绪");
+      DRAWS = d.draws; META = d;
+      localStorage.setItem("ssq_cache", JSON.stringify(d));
+      renderAll();
+      btn.textContent = "刷新数据"; btn.disabled = false;
+    }).catch(function(){
+      if (remaining > 0 && !DRAWS.length){
+        setTimeout(function(){ tryFetch(remaining - 1); }, 3000);
+      } else {
+        var cached = null;
+        try { cached = JSON.parse(localStorage.getItem("ssq_cache") || "null"); } catch(e){}
+        if (cached && cached.ok){ DRAWS = cached.draws; META = cached; renderAll(); toast("已使用本机缓存数据"); }
+        else toast("数据加载失败，请点“刷新数据”重试");
+        btn.textContent = "刷新数据"; btn.disabled = false;
+      }
+    });
+  };
+  tryFetch(manual ? 0 : 8);
+}
+/* 倒计时 */
+function tickCountdown(){
+  var el = document.getElementById("countdown");
+  if (!DRAWS.length) return;
+  var now = new Date();
+  for (var i = 0; i < 8; i++){
+    var t = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, 21, 15, 0);
+    if (t > now && [0, 2, 4].indexOf(t.getDay()) >= 0){
+      var wk = "日一二三四五六"[t.getDay()];
+      var diff = Math.max(0, t - now);
+      var dd = Math.floor(diff / 86400000), hh = Math.floor(diff % 86400000 / 3600000),
+          mm = Math.floor(diff % 3600000 / 60000);
+      el.textContent = "下期开奖：周" + wk + "（" + (t.getMonth() + 1) + "月" + t.getDate() + "日）21:15 · 剩 " +
+        (dd ? dd + "天" : "") + hh + "时" + mm + "分";
+      return;
+    }
+  }
+}
+document.getElementById("genBtn").addEventListener("click", genPredict);
+document.getElementById("refreshBtn").addEventListener("click", function(){ loadHistory(true); });
+document.getElementById("nMinus").addEventListener("click", function(){
+  nSets = Math.max(1, nSets - 1); localStorage.setItem("ssq_nsets", nSets);
+  document.getElementById("nSets").textContent = nSets;
+});
+document.getElementById("nPlus").addEventListener("click", function(){
+  nSets = Math.min(10, nSets + 1); localStorage.setItem("ssq_nsets", nSets);
+  document.getElementById("nSets").textContent = nSets;
+});
+document.querySelectorAll("nav button").forEach(function(btn){
+  btn.addEventListener("click", function(){
+    document.querySelectorAll("nav button").forEach(function(b){ b.classList.remove("on"); });
+    btn.classList.add("on");
+    document.querySelectorAll(".view").forEach(function(v){ v.classList.add("hidden"); });
+    document.getElementById(btn.dataset.view).classList.remove("hidden");
+  });
+});
+initChips();
+setInterval(tickCountdown, 30000);
+loadHistory(false);
+</script>
+</body>
+</html>
